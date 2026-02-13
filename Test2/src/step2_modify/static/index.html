@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片相似性搜索</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>图片相似性搜索</h1>
+        
+        <div class="upload-section">
+            <h2>上传图片</h2>
+            <div class="upload-area">
+                <input type="file" id="imageUpload" accept="image/*">
+                <button id="searchBtn">搜索相似图片</button>
+            </div>
+            <div id="uploadedImage" class="image-preview"></div>
+        </div>
+        
+        <div class="results-section">
+            <h2>搜索结果</h2>
+            <div id="loading" style="display: none;">搜索中...</div>
+            <div id="results" class="results-grid"></div>
+        </div>
+    </div>
+    
+    <script src="/static/js/script.js"></script>
+</body>
+</html>

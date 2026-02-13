@@ -1,0 +1,13 @@
+__pycache__
+.trae
+img
+img_step2_false
+model_cache
+pytorch_env
+querySet
+querySet_step2
+querySet_step2_profile
+querySet_step2_profile2
+vir
+temp
+milvus\volumes
