@@ -1,0 +1,26 @@
+# 创建 .dockerignore 文件忽略不必要的文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+.git/
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+docker-compose.yml
+.idea/
+.vscode/
+*.log
+logs/
+temp/
+tmp/
+model_cache/  # 大文件不要放入镜像
+img/         # 图片文件不要放入镜像
+pytorch-env/  # 虚拟环境不要放入镜像
+milvus/  # Milvus数据不要放入镜像

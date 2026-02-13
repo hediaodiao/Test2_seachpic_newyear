@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pydantic-settings
+numpy
+torch
+torchvision
+pillow
+scipy
+pymilvus
+open_clip_torch
+efficientnet-pytorch

@@ -1,0 +1,115 @@
+version: '3.5'
+
+services:
+  etcd:
+    container_name: deploy-etcd
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/etcd:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  minio:
+    container_name: deploy-minio
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "${MINIO_API_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  standalone:
+    container_name: deploy-standalone
+    image: milvusdb/milvus:v2.6.8
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+    - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "${MILVUS_GRPC_PORT}:19530"
+      - "9093:9091"
+    depends_on:
+      - "etcd"
+      - "minio"
+
+  image-search-app:  # 图像搜索应用服务
+    container_name: deploy-image-search-app
+    build: 
+      context: .  # 指向Python代码目录
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"  
+    environment:
+      - MILVUS_HOST=standalone
+      - MILVUS_PORT=19530
+      - MINIO_ENDPOINT=minio:9000
+      - PYTHONPATH=/app
+      - API_V1_STR="/api/v1"
+      - PROJECT_NAME="图像相似度搜索API"
+    volumes:
+      - ./data:/app/data
+      - ./models/cache:/app/models/cache
+      - ./static:/app/static
+    depends_on:
+      standalone:
+        condition: service_healthy  # 等待Milvus健康
+      minio:
+        condition: service_started
+    networks:
+      - milvus_deploy
+    # 添加健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]  # 需要实现健康检查端点
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    # 重启策略
+    restart: unless-stopped
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  default:
+    name: milvus_deploy
